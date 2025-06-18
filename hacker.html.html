@@ -38,7 +38,7 @@
 
   <!-- SYSTEM DIAGNOSTICS INTERFACE -->
   <div id="diagnostics">
-    <h1>System Diagnostics - Core v7.3.92</h1>
+    <h1>MIS System Diagnostics - Core v7.3.92</h1>
     <div id="output"></div>
   </div>
 
@@ -108,7 +108,7 @@
         return lines.join('\n');
       },
       () => `
-██████╗  █████╗  ██████╗ ██████╗ ███████╗███████╗
+██████╗  █████╗  ██████╗ ██████╗ ███████╗██████╗
 ██╔══██╗██╔══██╗██╔════╝ ██╔══██╗██╔════╝██╔════╝
 ██████╔╝███████║██║  ███╗██████╔╝█████╗  ███████╗
 ██╔═══╝ ██╔══██║██║   ██║██╔═══╝ ██╔══╝  ╚════██║
@@ -182,7 +182,7 @@ SHELL ACCESS: ESTABLISHED
       showDiagnosticsMode();
       diagnosticsTimer = setTimeout(() => {
         showTerminalMode();
-        terminalTimer = setTimeout(loopModes, 30000); // Terminal for 30s
+        terminalTimer = setTimeout(loopModes, 40000); // Terminal for 40s
       }, 120000); // Diagnostics for 2 mins
     }
 
