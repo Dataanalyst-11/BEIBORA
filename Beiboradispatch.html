@@ -90,7 +90,7 @@
   </style>
 </head>
 <body>
-  <h1>🚚 Invoices at BEIBORA Dispatch</h1>
+  <h1>🚚 Invoices at Dispatch</h1>
   <div id="count-display">Invoices at Dispatch: 0</div>
 
   <div class="table-container" id="scrollArea">
@@ -111,9 +111,31 @@
     const API_URL = 'https://script.google.com/macros/s/AKfycbzQxNWn9pl8mNw-BPh4tgk8rLnl64KOW99cJ-YlwYgtqr24W5R4JkAqOjpSz9ySueMiPQ/exec';
     const liveTimers = {};
 
+    function parseTimeToDate(input) {
+      const parts = input.match(/(\d+):(\d+):(\d+)\s*(am|pm)/i);
+      if (parts) {
+        const now = new Date();
+        let hours = parseInt(parts[1], 10);
+        const minutes = parseInt(parts[2], 10);
+        const seconds = parseInt(parts[3], 10);
+        const period = parts[4].toLowerCase();
+
+        if (period === 'pm' && hours !== 12) hours += 12;
+        if (period === 'am' && hours === 12) hours = 0;
+
+        const date = new Date(now);
+        date.setHours(hours, minutes, seconds, 0);
+        return date;
+      }
+
+      const fallback = new Date(input);
+      return isNaN(fallback.getTime()) ? null : fallback;
+    }
+
     function formatDateTime(input) {
-      const date = parseDDMMYYYY(input);
-      if (isNaN(date.getTime())) return input;
+      let date = (input instanceof Date) ? input : parseTimeToDate(input);
+      if (!date || isNaN(date.getTime())) return input;
+
       const pad = n => n.toString().padStart(2, '0');
       return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     }
@@ -129,14 +151,6 @@
       } else {
         return `${minutes} min ${seconds} sec`;
       }
-    }
-
-    function parseDDMMYYYY(dateStr) {
-      const [datePart, timePart] = dateStr.split(' ');
-      if (!datePart || !timePart) return new Date('Invalid');
-      const [day, month, year] = datePart.split('/').map(Number);
-      const [hour, minute, second] = timePart.split(':').map(Number);
-      return new Date(year, month - 1, day, hour, minute, second);
     }
 
     async function fetchData() {
@@ -157,8 +171,10 @@
           const invoice = row["INVOICE NUMBER"] || '';
 
           if (confirmationOut && !rider) {
+            const timeOut = parseTimeToDate(confirmationOut);
+            if (!timeOut) return;
+
             count++;
-            const timeOut = parseDDMMYYYY(confirmationOut);
             const now = new Date();
             const minutesPassed = (now - timeOut) / (1000 * 60);
             const invoiceId = invoice.replace(/\s/g, '');
@@ -190,10 +206,8 @@
         });
 
         countDisplay.textContent = `Invoices at Dispatch: ${count}`;
-
       } catch (err) {
         console.error('Fetch error:', err);
-        document.getElementById('count-display').textContent = '⚠️ Error fetching data';
       }
     }
 
@@ -204,14 +218,14 @@
       const now = new Date();
       for (const [invoiceId, startTime] of Object.entries(liveTimers)) {
         const timerElem = document.getElementById(`timer-${invoiceId}`);
-        if (timerElem) {
+        if (timerElem && startTime instanceof Date && !isNaN(startTime.getTime())) {
           const elapsed = now - startTime;
           timerElem.textContent = `⏱️ Waiting: ${formatDuration(elapsed)}`;
         }
       }
     }, 1000);
 
-    // Auto Scroll
+    // Smooth Auto Scroll
     const scrollArea = document.getElementById('scrollArea');
     let direction = 'down';
     let pausedUntil = 0;
