@@ -69,7 +69,7 @@
   </style>
 </head>
 <body>
-  <h1>🔵 In Confirmation Invoices(BEIBORA)</h1>
+  <h1>🔵 In Confirmation Invoices (BEIBORA)</h1>
   <div id="invoiceCount">Loading invoice count...</div>
 
   <div id="scrollArea">
@@ -93,32 +93,36 @@
     const API_URL = 'https://script.google.com/macros/s/AKfycbzQxNWn9pl8mNw-BPh4tgk8rLnl64KOW99cJ-YlwYgtqr24W5R4JkAqOjpSz9ySueMiPQ/exec';
     const liveTimers = {};
 
-    function formatDateTime(input) {
-      const date = parseDDMMYYYY(input);
-      if (isNaN(date.getTime())) return input;
+    function parseConfirmationTime(timeStr) {
+      if (!timeStr) return null;
+      const today = new Date();
+      const datePart = today.toISOString().split('T')[0]; // "2025-06-30"
+      const combined = `${datePart} ${timeStr}`;
+      const parsed = new Date(combined);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function minutesPassedSince(timeStr) {
+      const past = parseConfirmationTime(timeStr);
+      if (!past) return 0;
+      return (Date.now() - past.getTime()) / 60000;
+    }
+
+    function formatDateTime(timeStr) {
+      const dt = parseConfirmationTime(timeStr);
+      if (!dt) return timeStr;
       const pad = n => n.toString().padStart(2, '0');
-      return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+      const hours = dt.getHours();
+      const ampm = hours >= 12 ? 'pm' : 'am';
+      const displayHours = hours % 12 || 12;
+      return `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}/${dt.getFullYear()} ${pad(displayHours)}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())} ${ampm}`;
     }
 
     function formatDuration(ms) {
       const totalSec = Math.floor(ms / 1000);
-      const hours = Math.floor(totalSec / 3600);
-      const minutes = Math.floor((totalSec % 3600) / 60);
+      const minutes = Math.floor(totalSec / 60);
       const seconds = totalSec % 60;
-
-      if (hours > 0) {
-        return `${hours} hr ${minutes} min ${seconds} sec`;
-      } else {
-        return `${minutes} min ${seconds} sec`;
-      }
-    }
-
-    function parseDDMMYYYY(dateStr) {
-      const [datePart, timePart] = dateStr.split(' ');
-      if (!datePart || !timePart) return new Date('Invalid');
-      const [day, month, year] = datePart.split('/').map(Number);
-      const [hour, minute, second] = timePart.split(':').map(Number);
-      return new Date(year, month - 1, day, hour, minute, second);
+      return `${minutes} min ${seconds} sec`;
     }
 
     async function fetchData() {
@@ -126,11 +130,11 @@
         const res = await fetch(API_URL);
         const data = await res.json();
         const tbody = document.getElementById('table-body');
-        tbody.innerHTML = '';
+        tbody.innerHTML = ''; // Clear existing rows
         let invoiceCount = 0;
+        const newInvoices = [];
 
         data.sort((a, b) => new Date(b["CONFIRMATION TIME IN"]) - new Date(a["CONFIRMATION TIME IN"]));
-        const newInvoices = [];
 
         data.forEach(row => {
           const storeOut = row["Store Time Out"];
@@ -139,11 +143,8 @@
           const invoice = row["INVOICE NUMBER"] || '';
 
           if (storeOut && confirmIn && !confirmOut) {
-            const timeIn = parseDDMMYYYY(confirmIn);
-            if (isNaN(timeIn.getTime())) return;
-
-            const now = new Date();
-            const minutesPassed = (now - timeIn) / (1000 * 60);
+            const confirmTime = parseConfirmationTime(confirmIn);
+            const minutesPassed = minutesPassedSince(confirmIn);
             const formattedTime = formatDateTime(confirmIn);
             const invoiceId = invoice.replace(/\s/g, '');
             const timerId = `timer-${invoiceId}`;
@@ -170,7 +171,7 @@
             `;
 
             tbody.appendChild(tr);
-            liveTimers[invoiceId] = timeIn;
+            liveTimers[invoiceId] = confirmTime;
             newInvoices.push(invoice);
             invoiceCount++;
           }
@@ -189,19 +190,17 @@
       }
     }
 
-    // Update countdown timers every second
     setInterval(() => {
       const now = new Date();
       for (const [invoiceId, startTime] of Object.entries(liveTimers)) {
         const timerElem = document.getElementById(`timer-${invoiceId}`);
-        if (timerElem) {
+        if (timerElem && startTime) {
           const elapsed = now - startTime;
           timerElem.textContent = `⏱️ In Confirmation for: ${formatDuration(elapsed)}`;
         }
       }
     }, 1000);
 
-    // Smooth auto-scroll
     const scrollArea = document.getElementById('scrollArea');
     let direction = 'down';
 
