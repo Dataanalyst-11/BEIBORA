@@ -167,7 +167,7 @@
 
         data.reverse().forEach(row => {
           const confirmationOut = row["CONFIRMATION TIME OUT"];
-          const rider = row["RIDER"];
+          const rider = row["Column 19"] || row["Delivered By"] || row["RIDER"];
           const invoice = row["INVOICE NUMBER"] || '';
 
           if (confirmationOut && !rider) {
