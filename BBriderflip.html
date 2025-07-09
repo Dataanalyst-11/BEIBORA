@@ -52,13 +52,13 @@
 
   function switchDashboard() {
     if (showingCashier) {
-      riderFrame.src = "rider.html?nocache=" + new Date().getTime();
+      riderFrame.src = "BBrider.html?nocache=" + new Date().getTime();
       cashierFrame.classList.remove('active');
       riderFrame.classList.add('active');
       showingCashier = false;
       timer = setTimeout(switchDashboard, 180000); // 3 minutes for rider
     } else {
-      cashierFrame.src = "cashier.html?nocache=" + new Date().getTime();
+      cashierFrame.src = "BBcashier.html?nocache=" + new Date().getTime();
       riderFrame.classList.remove('active');
       cashierFrame.classList.add('active');
       showingCashier = true;
