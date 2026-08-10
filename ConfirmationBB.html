@@ -1,247 +1,436 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>In Confirmation - Invoice Dashboard</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0faff;
-      padding: 20px;
-      margin: 0;
-    }
-    h1 {
-      background: #17a2b8;
-      color: white;
-      padding: 12px;
-      border-radius: 8px;
-      text-align: center;
-      margin: 0;
-    }
-    #invoiceCount {
-      text-align: center;
-      font-size: 1.2em;
-      margin-top: 10px;
-      font-weight: bold;
-      color: #333;
-    }
-    #scrollArea {
-      max-height: 90vh;
-      overflow-y: auto;
-      margin-top: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ddd;
-      text-align: left;
-    }
-    thead th {
-      position: sticky;
-      top: 0;
-      background-color: #f7f7f7;
-      z-index: 10;
-    }
-    tr.highlight-green {
-      background-color: #006400;
-      color: white;
-      font-weight: bold;
-    }
-    tr.highlight-yellow {
-      background-color: #FFD700;
-      color: black;
-      font-weight: bold;
-    }
-    tr.highlight-red {
-      background-color: #8B0000;
-      color: white;
-      font-weight: bold;
-    }
-    small {
-      font-size: 0.85em;
-      color: inherit;
-    }
-  </style>
-</head>
-<body>
-  <h1>🔵 In Confirmation Invoices (BEIBORA)</h1>
-  <div id="invoiceCount">Loading invoice count...</div>
+<meta charset="UTF-8">
+<title>Beibora Confirmation Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <div id="scrollArea">
-    <table>
-      <thead>
-        <tr>
-          <th>Invoice Number</th>
-          <th>Confirmation Time In</th>
-          <th>Confirmation Executive</th>
-          <th>Customer Name</th>
-          <th>Route</th>
-        </tr>
-      </thead>
-      <tbody id="table-body"></tbody>
-    </table>
-  </div>
+<style>
+* { box-sizing: border-box; }
 
-  <audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
-
-  <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzQxNWn9pl8mNw-BPh4tgk8rLnl64KOW99cJ-YlwYgtqr24W5R4JkAqOjpSz9ySueMiPQ/exec';
-    const liveTimers = {};
-
-    function parseConfirmationTime(timeStr) {
-      if (!timeStr) return null;
-      const today = new Date();
-      const datePart = today.toISOString().split('T')[0]; // "2025-06-30"
-      const combined = `${datePart} ${timeStr}`;
-      const parsed = new Date(combined);
-      return isNaN(parsed.getTime()) ? null : parsed;
-    }
-
-    function minutesPassedSince(timeStr) {
-      const past = parseConfirmationTime(timeStr);
-      if (!past) return 0;
-      return (Date.now() - past.getTime()) / 60000;
-    }
-
-    function formatDateTime(timeStr) {
-      const dt = parseConfirmationTime(timeStr);
-      if (!dt) return timeStr;
-      const pad = n => n.toString().padStart(2, '0');
-      const hours = dt.getHours();
-      const ampm = hours >= 12 ? 'pm' : 'am';
-      const displayHours = hours % 12 || 12;
-      return `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}/${dt.getFullYear()} ${pad(displayHours)}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())} ${ampm}`;
-    }
-
-    function formatDuration(ms) {
-  const totalSec = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSec / 3600);
-  const minutes = Math.floor((totalSec % 3600) / 60);
-  const seconds = totalSec % 60;
-
-  if (hours > 0) {
-    return `${hours} hr ${minutes} min ${seconds} sec`;
-  }
-  return `${minutes} min ${seconds} sec`;
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  overflow: hidden;
+  background: #fff;
 }
 
+h2 {
+  background: #1270c2;
+  color: white;
+  text-align: center;
+  margin: 0;
+  padding: 12px;
+}
 
-    async function fetchData() {
-      try {
-        const res = await fetch(API_URL);
-        const data = await res.json();
-        const tbody = document.getElementById('table-body');
-        tbody.innerHTML = ''; // Clear existing rows
-        let invoiceCount = 0;
-        const newInvoices = [];
+#summary {
+  background: #1270c2;
+  color: white;
+  text-align: center;
+  padding: 8px;
+}
 
-        data.sort((a, b) => new Date(b["CONFIRMATION TIME IN"]) - new Date(a["CONFIRMATION TIME IN"]));
+.table-container {
+  height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding: 10px;
+}
 
-        data.forEach(row => {
-          const storeOut = row["Store Time Out"];
-          const confirmIn = row["CONFIRMATION TIME IN"];
-          const confirmOut = row["CONFIRMATION TIME OUT"];
-          const invoice = row["INVOICE NUMBER"] || '';
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
 
-          if (storeOut && confirmIn && !confirmOut) {
-            const confirmTime = parseConfirmationTime(confirmIn);
-            const minutesPassed = minutesPassedSince(confirmIn);
-            const formattedTime = formatDateTime(confirmIn);
-            const invoiceId = invoice.replace(/\s/g, '');
-            const timerId = `timer-${invoiceId}`;
-            const tr = document.createElement('tr');
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  font-size: 14px;
+}
 
-            if (minutesPassed > 20) {
-              tr.classList.add('highlight-red');
-            } else if (minutesPassed > 10) {
-              tr.classList.add('highlight-yellow');
-            } else {
-              tr.classList.add('highlight-green');
-            }
+thead th {
+  background: #f1f1f1;
+}
 
-            tr.innerHTML = `
-              <td>${invoice}</td>
-              <td>
-                ${formattedTime}
-                <br>
-                <small id="${timerId}">⏱️ In Confirmation for: calculating...</small>
-              </td>
-              <td>${row["CONFIRMATION EXECUTIVE"] || ''}</td>
-              <td>${row["CUSTOMER NAME"] || ''}</td>
-              <td>${row["ROUTE"] || ''}</td>
-            `;
+.green-row { background: #006400; color: white; }
+.yellow-row { background: #FFD700; color: black; }
+.red-row { background: #8B0000; color: white; }
 
-            tbody.appendChild(tr);
-            liveTimers[invoiceId] = confirmTime;
-            newInvoices.push(invoice);
-            invoiceCount++;
-          }
-        });
+.timer {
+  display: block;
+  font-size: 11px;
+}
 
-        document.getElementById('invoiceCount').textContent = `🔢 Total Invoices in Confirmation: ${invoiceCount}`;
+.footer {
+  text-align: center;
+  font-size: 11px;
+  color: gray;
+  padding: 5px;
+}
 
-        if (newInvoices.length > 0) {
-          const beep = document.getElementById('beep');
-          beep.play();
-        }
+#ttsBtn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 8px 14px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 9999;
+}
+</style>
+</head>
 
-      } catch (err) {
-        console.error('Fetch failed:', err);
-        document.getElementById('invoiceCount').textContent = `⚠️ Failed to load invoices.`;
-      }
-    }
+<body>
 
-    setInterval(() => {
-      const now = new Date();
-      for (const [invoiceId, startTime] of Object.entries(liveTimers)) {
-        const timerElem = document.getElementById(`timer-${invoiceId}`);
-        if (timerElem && startTime) {
-          const elapsed = now - startTime;
-          timerElem.textContent = `⏱️ In Confirmation for: ${formatDuration(elapsed)}`;
-        }
-      }
-    }, 1000);
+<h2>🧑‍⚕️BEIBORA CONFIRMATION TRACKING DASHBOARD 🧑‍💻</h2>
+<div id="summary">Total Invoices In Confirmation: 0</div>
 
-    const scrollArea = document.getElementById('scrollArea');
-    let direction = 'down';
+<div class="table-container">
+<table id="invoiceTable">
+  <thead>
+    <tr>
+      <th>Invoice</th>
+      <th>Confirmation Time In</th>
+      <th>Confirmer</th>
+      <th>Customer</th>
+      <th>Credit Terms</th>
+      <th>Route</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+</div>
 
-    function smoothScroll() {
-      const speed = 1;
-      function step() {
-        if (direction === 'down') {
-          if (scrollArea.scrollTop + scrollArea.clientHeight < scrollArea.scrollHeight) {
-            scrollArea.scrollTop += speed;
-            requestAnimationFrame(step);
-          } else {
-            direction = 'up';
-            setTimeout(() => requestAnimationFrame(smoothScroll), 2000);
-          }
-        } else {
-          if (scrollArea.scrollTop > 0) {
-            scrollArea.scrollTop -= speed;
-            requestAnimationFrame(step);
-          } else {
-            direction = 'down';
-            setTimeout(() => requestAnimationFrame(smoothScroll), 15000);
-          }
-        }
-      }
-      step();
-    }
+<div class="footer">
+  Last updated: <span id="lastUpdated">--</span><br>
+  Designed and Managed by MIS.DPT
+</div>
 
-    window.addEventListener('load', () => {
-      document.dispatchEvent(new Event('touchstart'));
-      setTimeout(() => requestAnimationFrame(smoothScroll), 15000);
+<button id="ttsBtn">▶ Start Invoice Alert</button>
+
+<script src="config2.js"></script>
+<script>
+
+/* =========================================================
+   DATE
+========================================================= */
+var today = new Date();
+var formatted = today.toISOString().split("T")[0];
+
+/* =========================================================
+   ENVIRONMENT DETECTION
+========================================================= */
+var USER_AGENT = navigator.userAgent || "";
+
+var IS_FULLY_KIOSK = /FullyKiosk/i.test(USER_AGENT);
+var IS_ANDROID_WEBVIEW = /wv|WebView/i.test(USER_AGENT);
+var IS_KIOSK = IS_FULLY_KIOSK || IS_ANDROID_WEBVIEW;
+
+var TTS_SUPPORTED =
+  !IS_KIOSK &&
+  typeof window !== "undefined" &&
+  "speechSynthesis" in window &&
+  "SpeechSynthesisUtterance" in window;
+
+console.log("Environment:", USER_AGENT);
+console.log("Kiosk Mode:", IS_KIOSK);
+console.log("TTS Supported:", TTS_SUPPORTED);
+
+/* =========================================================
+   CONFIG
+========================================================= */
+var API_URL =
+  window.API_CONFIG.API_URL +
+  "list?status=ITEM_CONFIRMATION" +
+  "&orgBranchId=orgbranch-6a74b425a74cd8c01f57e287" +
+  "&startDate=" + formatted;
+
+var API_TOKEN = window.API_CONFIG.API_TOKEN;
+
+var tbody = document.querySelector("#invoiceTable tbody");
+var summaryEl = document.getElementById("summary");
+var lastUpdatedEl = document.getElementById("lastUpdated");
+var ttsBtn = document.getElementById("ttsBtn");
+
+/* =========================================================
+   TTS HARDENED ENGINE
+========================================================= */
+
+var femaleVoice = null;
+var ttsActivated = false;
+var speakQueue = [];
+var isSpeaking = false;
+var lastSpeechTime = Date.now();
+var activeRedInvoices = {}; // invoiceId -> lastSpokenDelay
+
+/* ---------- Disable Button in Kiosk ---------- */
+if (!TTS_SUPPORTED) {
+  ttsBtn.style.display = "none";
+}
+
+/* ---------- Load Voice Safely ---------- */
+function loadVoicesSafe() {
+  if (!TTS_SUPPORTED) return;
+  var voices = speechSynthesis.getVoices();
+  femaleVoice =
+    voices.find(v => v.name.includes("Female")) ||
+    voices.find(v => v.name.includes("Google")) ||
+    voices[0];
+}
+
+if (TTS_SUPPORTED) {
+  speechSynthesis.onvoiceschanged = loadVoicesSafe;
+  loadVoicesSafe();
+}
+
+/* ---------- Activate TTS ---------- */
+ttsBtn.onclick = function () {
+  if (!TTS_SUPPORTED || ttsActivated) return;
+
+  speechSynthesis.cancel();
+  speechSynthesis.speak(new SpeechSynthesisUtterance("Invoice alerts activated"));
+
+  ttsActivated = true;
+  this.innerText = "🔊 Alerts Active";
+  this.disabled = true;
+};
+
+/* ---------- Queue Protection ---------- */
+function queueAlert(message) {
+  if (!ttsActivated || !TTS_SUPPORTED) return;
+
+  if (speakQueue.length > 15) return; // prevent overflow
+
+  speakQueue.push(message);
+  processQueue();
+}
+
+/* ---------- Speech Processor ---------- */
+function processQueue() {
+  if (!ttsActivated || !TTS_SUPPORTED) return;
+  if (isSpeaking || speakQueue.length === 0) return;
+
+  if (!femaleVoice) loadVoicesSafe();
+
+  var utter = new SpeechSynthesisUtterance(speakQueue.shift());
+  if (femaleVoice) utter.voice = femaleVoice;
+
+  utter.rate = 1;
+  utter.pitch = 1;
+
+  isSpeaking = true;
+  lastSpeechTime = Date.now();
+
+  utter.onend = function () {
+    isSpeaking = false;
+    lastSpeechTime = Date.now();
+    processQueue();
+  };
+
+  utter.onerror = function () {
+    isSpeaking = false;
+    processQueue();
+  };
+
+  speechSynthesis.speak(utter);
+}
+
+/* ---------- Self-Healing Watchdog ---------- */
+setInterval(function () {
+
+  if (!ttsActivated || !TTS_SUPPORTED) return;
+
+  // Engine stuck detection
+  if (isSpeaking && !speechSynthesis.speaking) {
+    isSpeaking = false;
+    processQueue();
+  }
+
+  // Auto-reset if frozen >30s
+  if (Date.now() - lastSpeechTime > 30000 && speakQueue.length > 0) {
+    console.log("Speech engine reset triggered");
+    speechSynthesis.cancel();
+    isSpeaking = false;
+    processQueue();
+  }
+
+}, 5000);
+
+/* =========================================================
+   FORMAT INVOICE FOR SPEECH
+========================================================= */
+function formatInvoiceForSpeech(inv) {
+  if (!inv || inv.length < 4) return inv;
+
+  var firstThree = inv.substr(0,3).split("").join(" ");
+
+  var lastFour = inv.substr(inv.length-4)
+    .split("")
+    .map(function(n){
+      var nums=["zero","one","two","three","four","five","six","seven","eight","nine"];
+      return nums[n] || n;
+    })
+    .join(" ");
+
+  return firstThree + " " + lastFour;
+}
+
+/* =========================================================
+   FETCH + RENDER
+========================================================= */
+function fetchAndRender() {
+  fetch(API_URL, { headers: { Authorization: API_TOKEN } })
+    .then(r => r.json())
+    .then(function(res){
+      if (!res || !res.data) return;
+      render(res.data);
+      lastUpdatedEl.innerText = new Date().toLocaleTimeString();
+    })
+    .catch(function(err){
+      console.log("Fetch error:", err);
     });
+}
 
-    fetchData();
-    setInterval(fetchData, 15000); // Refresh every 15 seconds
-  </script>
+function render(data) {
+
+  tbody.innerHTML = "";
+  summaryEl.innerText =
+    "Total Invoices In Confirmation: " + data.length;
+
+  var visibleIds = {};
+
+  data.forEach(function(item){
+
+    if (!item.orderConfirmationCheckinAt) return;
+
+    var checkin = new Date(item.orderConfirmationCheckinAt);
+    var diffMin = Math.floor((Date.now() - checkin.getTime()) / 60000);
+
+    visibleIds[item.id] = true;
+
+    var tr = document.createElement("tr");
+
+    if (diffMin <= 10) tr.className = "green-row";
+    else if (diffMin <= 20) tr.className = "yellow-row";
+    else tr.className = "red-row";
+
+    tr.innerHTML =
+      "<td>"+item.invoiceNumber+"</td>"+
+      "<td>"+checkin.toLocaleTimeString()+
+      "<span class='timer'>In confirmation: "+
+      Math.floor(diffMin/60)+"h "+(diffMin%60)+"m</span></td>"+
+      "<td>"+(item.itemsConfirmedByName||"-")+"</td>"+
+      "<td>"+item.customerName+"</td>"+
+      "<td>"+(item.creditTerm||"").replace(/_/g," ")+"</td>"+
+      "<td>"+item.routeName+"</td>"+
+      "<td>"+checkin.toLocaleDateString()+"</td>";
+
+    tbody.appendChild(tr);
+
+    handleRedInvoice(item, diffMin);
+  });
+
+  cleanupInvisible(visibleIds);
+}
+
+/* =========================================================
+   RED ANNOUNCEMENT LOGIC
+========================================================= */
+function handleRedInvoice(item, diffMin) {
+
+  if (!ttsActivated || !TTS_SUPPORTED) return;
+
+  if (diffMin <= 20) {
+    delete activeRedInvoices[item.id];
+    return;
+  }
+
+  var delay = diffMin - 20;
+
+  if (!activeRedInvoices[item.id] ||
+      delay > activeRedInvoices[item.id]) {
+
+    var spokenInvoice = formatInvoiceForSpeech(item.invoiceNumber);
+    var confirmer = item.itemsConfirmedByName || "Staff";
+
+    var message =
+      confirmer +
+      ", invoice " + spokenInvoice +
+      " has delayed for " + delay +
+      " minute" + (delay!==1?"s":"") +
+      ". Kindly be Fast.";
+
+    queueAlert(message);
+
+    activeRedInvoices[item.id] = delay;
+  }
+}
+
+function cleanupInvisible(visibleIds){
+  for (var id in activeRedInvoices){
+    if (!visibleIds[id]){
+      delete activeRedInvoices[id];
+    }
+  }
+}
+
+/* =========================================================
+   AUTO SCROLL (TV SAFE)
+========================================================= */
+var direction = 1;
+var paused = false;
+
+function pause(ms){
+  paused = true;
+  setTimeout(function(){ paused=false; }, ms);
+}
+
+setInterval(function(){
+
+  var container = document.querySelector(".table-container");
+  if (!container) return;
+
+  if (paused) return;
+
+  var max = container.scrollHeight - container.clientHeight;
+  var next = container.scrollTop + direction;
+
+  if (next >= max){
+    direction = -1;
+    pause(4000);
+  }
+  else if (next <= 0){
+    direction = 1;
+    pause(4000);
+  }
+  else{
+    container.scrollTop = next;
+  }
+
+}, 20);
+
+/* =========================================================
+   START
+========================================================= */
+fetchAndRender();
+setInterval(fetchAndRender, 60000);
+
+/* =========================================================
+   AUTO FULL RESET (Every 4 Hours)
+   Prevents long-running browser TTS freeze
+========================================================= */
+
+setInterval(function(){
+  location.reload();
+}, 1000 * 60 * 60 * 4); // refresh every 4 hours
+
+
+</script>
+
 </body>
 </html>
-
