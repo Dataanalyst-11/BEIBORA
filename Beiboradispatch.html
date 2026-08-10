@@ -180,7 +180,7 @@ let pastD = String(pastDate.getDate()).padStart(2, '0');
 let formattedStart = `${pastY}-${pastM}-${pastD}`;
 
 const API_URL = window.API_CONFIG.API_URL +
-  `list?status=PENDING_DISPATCH&orgBranchId=orgbranch-6a74b425a74cd8c01f57e287&startDate=${formattedStart}&endDate=${formattedEnd}`;
+  `list?status=PENDING_DISPATCH&orgBranchId=orgbranch-6a74b425a74cd8c01f57e287&pageSize=500&startDate=${formattedStart}&endDate=${formattedEnd}`;
 
 const API_TOKEN = window.API_CONFIG.API_TOKEN;
 
