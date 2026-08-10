@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Beibora Printing Dashboard</title>
+  <title>Live Printing Dashboard</title>
 
   <style>
     * {
@@ -111,7 +111,7 @@
 
     .footer {
       text-align: center;
-      font-size: 0.5em;
+      font-size: 12px;
       margin-top: 10px;
       color: gray;
     }
@@ -162,7 +162,7 @@
     // Use central config instead of hardcoding
     //orgbranch-683976e3994a072a600cbd7a-Headoffice
     // ================================
-    const API_URL = window.API_CONFIG.API_URL+`list?pageNum=0&pageSize=100&orgBranchId=orgbranch-6a74b425a74cd8c01f57e287&startDate=${formatted}`;
+    const API_URL = window.API_CONFIG.API_URL+`list?status=ORDER_POSTED&list?pageNum=0&pageSize=100&orgBranchId=orgbranch-6a74b425a74cd8c01f57e287&startDate=${formatted}`;
     const API_TOKEN = window.API_CONFIG.API_TOKEN;
 
     // ================================
@@ -195,7 +195,7 @@
       tbody.innerHTML = "";
 
       document.getElementById("summary").textContent =
-        `Total Invoices Printed: ${data.length}`;
+        `Invoices in Printing Area: ${data.length}`;
 
       data.forEach(item => {
         const row = document.createElement("tr");
@@ -205,9 +205,9 @@
         const diffMinutes = diffMs / 60000;
 
         /* Apply row color based on elapsed time */
-        if (diffMinutes <= 5) {
+        if (diffMinutes <= 10) {
           row.classList.add("green-row");
-        } else if (diffMinutes <= 10) {
+        } else if (diffMinutes <= 15) {
           row.classList.add("yellow-row");
         } else {
           row.classList.add("red-row");
