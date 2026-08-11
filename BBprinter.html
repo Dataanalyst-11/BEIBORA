@@ -191,52 +191,57 @@
     }
 
     function displayInvoices(data) {
-      const tbody = document.querySelector("#invoiceTable tbody");
-      tbody.innerHTML = "";
+  const tbody = document.querySelector("#invoiceTable tbody");
+  tbody.innerHTML = "";
 
-      document.getElementById("summary").textContent =
-        `Invoices in Printing Area: ${data.length}`;
+  /* Filter: only show invoices CREATED today */
+  const todayInvoices = data.filter(item => {
+    const createdDate = new Date(item.createdAt);
+    const createdDateStr = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}-${String(createdDate.getDate()).padStart(2, '0')}`;
+    return createdDateStr === formatted;
+  });
 
-      data.forEach(item => {
-        const row = document.createElement("tr");
-        // You can replace the updatedAt to the time of your specs
-        const timeObj = new Date(item.createdAt);
-        const diffMs = Date.now() - timeObj.getTime();
-        const diffMinutes = diffMs / 60000;
+  document.getElementById("summary").textContent =
+    `Invoices in Printing Area: ${todayInvoices.length}`;
 
-        /* Apply row color based on elapsed time */
-        if (diffMinutes <= 10) {
-          row.classList.add("green-row");
-        } else if (diffMinutes <= 15) {
-          row.classList.add("yellow-row");
-        } else {
-          row.classList.add("red-row");
-        }
+  todayInvoices.forEach(item => {
+    const row = document.createElement("tr");
+    const timeObj = new Date(item.createdAt);  // ← Timer already uses createdAt ✅
+    const diffMs = Date.now() - timeObj.getTime();
+    const diffMinutes = diffMs / 60000;
 
-        const timeString = timeObj.toLocaleTimeString([], {
-          hour: '2-digit', minute: '2-digit'
-        });
-
-        const timerId = `timer-${item.id}`;
-            //here specify the columns to display
-        row.innerHTML = `
-          <td>${item.invoiceNumber}</td>
-          <td>
-            ${timeString}
-            <span class="timer" id="${timerId}"></span>
-          </td>
-          <td>${item.customerName}</td>
-          <td>${item.creditTerm.replace(/_/g, ' ')}</td>
-          <td>${item.routeName}</td>
-          <td>${timeObj.toLocaleDateString()}</td>
-        `;
-
-        tbody.appendChild(row);
-        startElapsedTimer(timerId, timeObj);
-      });
-
-      startAutoScroll();
+    if (diffMinutes <= 10) {
+      row.classList.add("green-row");
+    } else if (diffMinutes <= 15) {
+      row.classList.add("yellow-row");
+    } else {
+      row.classList.add("red-row");
     }
+
+    const timeString = timeObj.toLocaleTimeString([], {
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    const timerId = `timer-${item.id}`;
+
+    row.innerHTML = `
+      <td>${item.invoiceNumber}</td>
+      <td>
+        ${timeString}
+        <span class="timer" id="${timerId}"></span>
+      </td>
+      <td>${item.customerName}</td>
+      <td>${item.creditTerm.replace(/_/g, ' ')}</td>
+      <td>${item.routeName}</td>
+      <td>${new Date(item.createdAt).toLocaleDateString()}</td>
+    `;
+
+    tbody.appendChild(row);
+    startElapsedTimer(timerId, timeObj);
+  });
+
+  startAutoScroll();
+}
 
     function startElapsedTimer(timerId, timeObj) {
       function update() {
