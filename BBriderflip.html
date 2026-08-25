@@ -58,7 +58,7 @@
       showingCashier = false;
       timer = setTimeout(switchDashboard, 180000); // 3 minutes for rider
     } else {
-      cashierFrame.src = "BBcashier.html?nocache=" + new Date().getTime();
+      cashierFrame.src = "BBtransit.html?nocache=" + new Date().getTime();
       riderFrame.classList.remove('active');
       cashierFrame.classList.add('active');
       showingCashier = true;
