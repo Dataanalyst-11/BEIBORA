@@ -113,7 +113,14 @@ thead th {
 
 <button id="ttsBtn">▶ Start Invoice Alert</button>
 
-<script src="config2.js"></script>
+<script>
+  // Not a credential — proxy only accepts requests from this site's origin.
+  // The real API token lives ONLY in the Cloudflare worker's secrets.
+  window.API_CONFIG = {
+    API_URL: "https://dashboard-proxy.mis-philmed01-dpt.workers.dev/beibora/"
+  };
+</script>
+  
 <script>
 
 /* =========================================================
@@ -149,8 +156,6 @@ var API_URL =
   "order-tracking/list?status=ITEM_CONFIRMATION" +
   "&orgBranchId=orgbranch-6a74b425a74cd8c01f57e287" +
   "&startDate=" + formatted;
-
-var API_TOKEN = window.API_CONFIG.API_TOKEN;
 
 var tbody = document.querySelector("#invoiceTable tbody");
 var summaryEl = document.getElementById("summary");
@@ -284,7 +289,7 @@ function formatInvoiceForSpeech(inv) {
    FETCH + RENDER
 ========================================================= */
 function fetchAndRender() {
-  fetch(API_URL, { headers: { Authorization: API_TOKEN } })
+  fetch(API_URL)
     .then(r => r.json())
     .then(function(res){
       if (!res || !res.data) return;
