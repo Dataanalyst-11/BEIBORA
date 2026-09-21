@@ -137,8 +137,14 @@
     Last updated: <span id="lastUpdated"></span>
     <div>Designed and Managed by MIS.DPT</div>
   </div>
-
-  <script src="config2.js"></script>
+  
+<script>
+  // Not a credential — proxy only accepts requests from this site's origin.
+  // The real API token lives ONLY in the Cloudflare worker's secrets.
+  window.API_CONFIG = {
+    API_URL: "https://dashboard-proxy.mis-philmed01-dpt.workers.dev/beibora/"
+  };
+</script>
 
   <script>
     /* Build today's date */
@@ -152,14 +158,12 @@
       window.API_CONFIG.API_URL +
       `order-tracking/list?status=IN_TRANSIT&orgBranchId=orgbranch-6a74b425a74cd8c01f57e287&pageSize=500&startDate=${formatted}`;
 
-    const API_TOKEN = window.API_CONFIG.API_TOKEN;
-
     // Fetch API data
     async function fetchInvoices() {
       try {
         const response = await fetch(API_URL, {
           headers: {
-            "Authorization": API_TOKEN,
+          
             "Content-Type": "application/json"
           }
         });
