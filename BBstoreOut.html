@@ -150,9 +150,14 @@
    <div>Designed and Managed by MIS.DPT</div>
   </div>
 
-  <!-- Load the config first -->
-  <script src="config2.js"></script>
-
+  <script>
+  // Not a credential — proxy only accepts requests from this site's origin.
+  // The real API token lives ONLY in the Cloudflare worker's secrets.
+  window.API_CONFIG = {
+    API_URL: "https://dashboard-proxy.mis-philmed01-dpt.workers.dev/beibora/"
+  };
+</script>
+  
   <script>
     /* Build today's date */
     let today = new Date();
@@ -161,15 +166,11 @@
     let dd = String(today.getDate()).padStart(2, '0');
     let formatted = `${yyyy}-${mm}-${dd}`;
 
-    /* Test range */
-    let testDate = "2025-10-01";
-    let testEndDate = "2025-11-04";
-
     // Use central config instead of hardcoding
     //683976e3994a072a600cbd7a-Headoffice
     // ================================
     const API_URL = window.API_CONFIG.API_URL+`order-tracking/list?status=STORE_CHECKED_OUT&orgBranchId=orgbranch-6a74b425a74cd8c01f57e287&startDate=${formatted}`;
-    const API_TOKEN = window.API_CONFIG.API_TOKEN;
+    
 
     // ================================
     // Fetch API Data
@@ -178,7 +179,7 @@
       try {
         const response = await fetch(API_URL, {
           headers: {
-            "Authorization": API_TOKEN,
+            
             "Content-Type": "application/json"
           }
         });
